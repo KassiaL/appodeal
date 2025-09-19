@@ -1,0 +1,6 @@
+name: "AppodealSdkAds"
+
+platforms:
+    android:
+        context:
+            excludeJars: ["(.*)/androidx-multidex.jar"]

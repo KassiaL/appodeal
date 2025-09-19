@@ -1,0 +1,10 @@
+repositories {
+        mavenCentral()
+         maven {
+            url "https://artifactory.appodeal.com/appodeal"
+        }
+}
+
+dependencies {
+    implementation("com.appodeal.ads:sdk:3.8.1.0")
+}
