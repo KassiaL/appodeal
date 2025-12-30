@@ -99,6 +99,53 @@ namespace dmAppodealAds
 
 	// ------------------------------------------------------------------------------------------
 
+	static int Lua_ShowBanner(lua_State *L)
+	{
+		DM_LUA_STACK_CHECK(L, 0);
+		if (lua_type(L, 1) != LUA_TSTRING)
+		{
+			return DM_LUA_ERROR("Expected string, got %s. Wrong type for Position '%s'.", luaL_typename(L, 1), lua_tostring(L, 1));
+		}
+		const char *position_lua = luaL_checkstring(L, 1);
+
+		const char *placement_lua = "";
+		if (lua_type(L, 2) == LUA_TSTRING)
+		{
+			placement_lua = luaL_checkstring(L, 2);
+		}
+		ShowBanner(position_lua, placement_lua);
+		return 0;
+	}
+
+	static int Lua_HideBanner(lua_State *L)
+	{
+		DM_LUA_STACK_CHECK(L, 0);
+		HideBanner();
+		return 0;
+	}
+
+static int Lua_GetBannerState(lua_State *L)
+{
+	DM_LUA_STACK_CHECK(L, 1);
+	const char *state = GetBannerState();
+	lua_pushstring(L, state);
+	return 1;
+}
+
+static int Lua_SetUseSafeArea(lua_State *L)
+{
+	DM_LUA_STACK_CHECK(L, 0);
+	if (lua_type(L, 1) != LUA_TBOOLEAN)
+	{
+		return DM_LUA_ERROR("Expected boolean, got %s. Wrong type for use_safe_area.", luaL_typename(L, 1));
+	}
+	int use_safe_area_lua = lua_toboolean(L, 1);
+	SetUseSafeArea(use_safe_area_lua);
+	return 0;
+}
+
+	// ------------------------------------------------------------------------------------------
+
 	static const luaL_reg Module_methods[] =
 		{
 			{"initialize", Lua_Initialize},
@@ -109,6 +156,12 @@ namespace dmAppodealAds
 
 			{"is_rewarded_loaded", Lua_IsRewardedLoaded},
 			{"show_rewarded", Lua_ShowRewarded},
+
+			{"show_banner", Lua_ShowBanner},
+			{"hide_banner", Lua_HideBanner},
+			{"get_banner_state", Lua_GetBannerState},
+
+			{"set_use_safe_area", Lua_SetUseSafeArea},
 
 			// {"set_user_consent", Lua_SetUserConsent},
 			{0, 0}};

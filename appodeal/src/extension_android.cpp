@@ -27,6 +27,12 @@ namespace dmAppodealAds
 		jmethodID m_IsRewardedLoaded;
 		jmethodID m_ShowRewarded;
 
+		jmethodID m_ShowBanner;
+		jmethodID m_HideBanner;
+		jmethodID m_GetBannerState;
+
+		jmethodID m_SetUseSafeArea;
+
 		// jmethodID m_SetUserConsent;
 	};
 
@@ -80,6 +86,18 @@ namespace dmAppodealAds
 		env->DeleteLocalRef(jstr);
 	}
 
+	static void CallVoidMethodCharChar(jobject instance, jmethodID method, const char *cstr1, const char *cstr2)
+	{
+		dmAndroid::ThreadAttacher threadAttacher;
+		JNIEnv *env = threadAttacher.GetEnv();
+
+		jstring jstr1 = env->NewStringUTF(cstr1);
+		jstring jstr2 = env->NewStringUTF(cstr2);
+		env->CallVoidMethod(instance, method, jstr1, jstr2);
+		env->DeleteLocalRef(jstr1);
+		env->DeleteLocalRef(jstr2);
+	}
+
 	static void CallVoidMethodInt(jobject instance, jmethodID method, int cint)
 	{
 		dmAndroid::ThreadAttacher threadAttacher;
@@ -105,6 +123,12 @@ namespace dmAppodealAds
 
 		g_app.m_IsRewardedLoaded = env->GetMethodID(cls, "isRewardedLoaded", "()Z");
 		g_app.m_ShowRewarded = env->GetMethodID(cls, "showRewarded", "(Ljava/lang/String;)V");
+
+		g_app.m_ShowBanner = env->GetMethodID(cls, "showBanner", "(Ljava/lang/String;Ljava/lang/String;)V");
+		g_app.m_HideBanner = env->GetMethodID(cls, "hideBanner", "()V");
+		g_app.m_GetBannerState = env->GetMethodID(cls, "getBannerState", "()Ljava/lang/String;");
+
+		g_app.m_SetUseSafeArea = env->GetMethodID(cls, "setUseSafeArea", "(Z)V");
 
 		// g_app.m_SetUserConsent = env->GetMethodID(cls, "setUserConsent", "(Z)V");
 	}
@@ -153,6 +177,38 @@ namespace dmAppodealAds
 	void ShowRewarded(const char *place)
 	{
 		CallVoidMethodChar(g_app.m_AppJNI, g_app.m_ShowRewarded, place);
+	}
+
+	// ------------------------------------------------------------------------------------------
+
+	void ShowBanner(const char *position, const char *placement)
+	{
+		CallVoidMethodCharChar(g_app.m_AppJNI, g_app.m_ShowBanner, position, placement);
+	}
+
+	void HideBanner()
+	{
+		CallVoidMethod(g_app.m_AppJNI, g_app.m_HideBanner);
+	}
+
+	const char *GetBannerState()
+	{
+		dmAndroid::ThreadAttacher threadAttacher;
+		JNIEnv *env = threadAttacher.GetEnv();
+
+		jstring return_value = (jstring)env->CallObjectMethod(g_app.m_AppJNI, g_app.m_GetBannerState);
+		const char *c_str = env->GetStringUTFChars(return_value, 0);
+		static char buffer[32];
+		strncpy(buffer, c_str, sizeof(buffer) - 1);
+		buffer[sizeof(buffer) - 1] = '\0';
+		env->ReleaseStringUTFChars(return_value, c_str);
+		env->DeleteLocalRef(return_value);
+		return buffer;
+	}
+
+	void SetUseSafeArea(bool val)
+	{
+		CallVoidMethodBool(g_app.m_AppJNI, g_app.m_SetUseSafeArea, val);
 	}
 
 	// void SetUserConsent(bool val)

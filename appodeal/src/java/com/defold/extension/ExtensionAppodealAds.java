@@ -45,6 +45,11 @@ public class ExtensionAppodealAds {
     private Activity activity;
 	private static final int LOCATION_PERMISSION_CODE = 1001;
 
+	private String bannerState = "loading";
+	private int bannerPosition = Appodeal.BANNER_BOTTOM;
+	private boolean shouldShowBanner = false;
+	private String bannerPlacement = "default";
+
     public ExtensionAppodealAds(Activity mainActivity) {
         activity = mainActivity;
     }
@@ -52,10 +57,11 @@ public class ExtensionAppodealAds {
 	public void initialize(String app_key, boolean testing) {
         Appodeal.setLogLevel(LogLevel.verbose);
 		Appodeal.setTesting(testing);
+		Appodeal.setAutoCache(Appodeal.BANNER, false);
         Appodeal.initialize(
             activity,
             app_key,
-            Appodeal.INTERSTITIAL | Appodeal.REWARDED_VIDEO,
+            Appodeal.INTERSTITIAL | Appodeal.REWARDED_VIDEO | Appodeal.BANNER,
             new ApdInitializationCallback() {
                 @Override
                 public void onInitializationFinished(List<ApdInitializationError> errors) {
@@ -160,6 +166,64 @@ public class ExtensionAppodealAds {
 			   sendSimpleMessage(MSG_INTERSTITIAL, EVENT_EXPIRED);
 			}
 		  });
+
+		Appodeal.setBannerCallbacks(new BannerCallbacks() {
+			@Override
+			public void onBannerLoaded(int height, boolean isPrecache) {
+				Log.d(TAG, "Called when banner is loaded, height: " + height + ", isPrecache: " + isPrecache);
+				bannerState = "hidden";
+				sendSimpleMessage(MSG_BANNER, EVENT_LOADED);
+				// Auto-show banner when loaded if shouldShowBanner is true
+				if (shouldShowBanner) {
+					activity.runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							if (!Appodeal.canShow(Appodeal.BANNER, bannerPlacement)) {
+								sendSimpleMessage(MSG_BANNER, EVENT_ERROR_SHOW);
+								return;
+							}
+							Appodeal.show(activity, Appodeal.BANNER, bannerPlacement);
+							bannerState = "shown";
+						}
+					});
+				}
+			}
+			@Override
+			public void onBannerFailedToLoad() {
+				Log.d(TAG, "Called when banner failed to load");
+				bannerState = "failed";
+				sendSimpleMessage(MSG_BANNER, EVENT_NOT_LOADED);
+			}
+			@Override
+			public void onBannerShown() {
+			   Log.d(TAG, "Called when banner is shown");
+			   bannerState = "shown";
+			   sendSimpleMessage(MSG_BANNER, EVENT_SHOWN);
+			}
+			@Override
+			public void onBannerShowFailed() {
+			   Log.d(TAG, "Called when banner show failed");
+			   bannerState = "failed";
+			   sendSimpleMessage(MSG_BANNER, EVENT_ERROR_SHOW);
+			}
+			@Override
+			public void onBannerClicked() {
+			   Log.d(TAG, "Called when banner is clicked");
+			   sendSimpleMessage(MSG_BANNER, EVENT_CLICKED);
+			}
+			@Override
+			public void onBannerExpired() {
+			   Log.d(TAG, "Called when banner is expired");
+			   bannerState = "hidden";
+			   sendSimpleMessage(MSG_BANNER, EVENT_EXPIRED);
+			   // Reload banner if it should be shown
+			   if (shouldShowBanner) {
+			   	Appodeal.cache(activity, Appodeal.BANNER);
+			   }
+			}
+		});
+
+		showBanner("bottom", "default");
     }
 
 	// public void setUserConsent(boolean enable_rdp) {
@@ -217,6 +281,39 @@ public class ExtensionAppodealAds {
 				}
 			}
 		});
+	}
+
+	public void showBanner(final String position, final String placement) {
+		bannerPosition = Appodeal.BANNER_BOTTOM;
+		if ("top".equals(position)) {
+			bannerPosition = Appodeal.BANNER_TOP;
+		}
+		bannerPlacement = placement;
+		shouldShowBanner = true;
+		// Cache banner manually
+		Appodeal.cache(activity, Appodeal.BANNER);
+	}
+
+	public void hideBanner() {
+		shouldShowBanner = false;
+		if (bannerState != "shown") {
+			return;
+		}
+		bannerState = "hidden";
+		activity.runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				Appodeal.hide(activity, Appodeal.BANNER);
+			}
+		});
+	}
+
+	public String getBannerState() {
+		return bannerState;
+	}
+
+	public void setUseSafeArea(boolean useSafeArea) {
+		Appodeal.setUseSafeArea(useSafeArea);
 	}
 
 	// ------------------------------------------------------------------------------------------
